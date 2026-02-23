@@ -25,6 +25,27 @@ The result: only one layout recalculation (frame 1), then pure compositor work f
 | **Count badges** | `layout` | Number updates with layout animation |
 | **Enter/exit** | `AnimatePresence` | Fade + scale on mount/unmount |
 
+## Performance tradeoffs
+
+### Advantages
+
+- **No layout thrashing during animation** — layout is calculated once upfront, then every frame uses `transform` only (GPU compositor), keeping per-frame cost at ~0.1ms
+- **Smooth element reordering** — siblings, parents, and the moving element all animate simultaneously without fighting the browser's layout engine
+- **Animates DOM insertions/removals** — elements moving between containers, entering, and exiting all get smooth transitions, which is impossible with CSS transitions alone
+- **Spring physics** — natural-feeling motion with momentum and deceleration instead of robotic linear easing
+
+### Disadvantages
+
+- **Higher CPU usage** — Motion runs JS on the main thread: `getBoundingClientRect()` calls before and after render, delta calculations, spring physics solver (~16-18 `requestAnimationFrame` callbacks per animation), and `AnimatePresence` bookkeeping
+- **Bundle size** — Motion adds ~18-20kB (gzipped) to the bundle
+- **Style recalcs are unchanged** — Motion doesn't reduce style recalculation cost; it's the same as a plain React re-render
+
+### When to use it
+
+- **Use Motion FLIP** when elements change position in the DOM (reordering lists, moving between containers, entering/exiting) and you need smooth visual continuity
+- **Use CSS transitions** when you're animating property changes on the same element (hover effects, color changes, opacity toggles) — no JS overhead needed
+- **Use neither** for static content where instant updates are acceptable and the extra CPU/bundle cost isn't justified
+
 ## Tech stack
 
 - **React 19** + TypeScript
